@@ -2,12 +2,23 @@
 import { useState } from "react";
 import { TOKENS, type TokenSymbol } from "@/lib/tokens";
 
+// (seguimos usando para 0x en mainnet)
 function toUnits(amountStr: string, decimals: number) {
   const [i, f = ""] = amountStr.trim().split(".");
   const frac = (f + "0".repeat(decimals)).slice(0, decimals);
   const raw  = (i || "0") + frac;
   const clean = raw.replace(/^0+/, "") || "0";
   return BigInt(clean);
+}
+
+// red actual
+function net() {
+  return (process.env.NEXT_PUBLIC_NETWORK || "").toLowerCase();
+}
+
+// validador simple de address
+function isHexAddress(addr?: string) {
+  return !!addr && /^0x[a-fA-F0-9]{40}$/.test(addr);
 }
 
 export default function SwapPage() {
@@ -21,9 +32,43 @@ export default function SwapPage() {
       const sell = TOKENS[sellSym];
       const buy  = TOKENS[buySym];
 
-      const sellAddr = sell.address || sellSym; // en demo vale con el label
-      const buyAddr  = buy.address || buySym;
+      // ---- Sepolia → Uniswap v3 (QuoterV2) ----
+      if (net() === "sepolia") {
+        // logs de diagnóstico
+        console.log("NET =", net());
+        console.log("TOKENS[sell] =", sell);
+        console.log("TOKENS[buy]  =", buy);
 
+        // validación de address (evita "invalid address")
+        if (!isHexAddress(sell.address) || !isHexAddress(buy.address)) {
+          alert(
+            "Direcciones de tokens en Sepolia no configuradas correctamente.\n" +
+            "Revisa NEXT_PUBLIC_USDC_SEPOLIA y NEXT_PUBLIC_WETH_SEPOLIA en .env.local y reinicia el server."
+          );
+          return;
+        }
+
+        const url = new URL("/api/uniswap/price", window.location.origin);
+        url.searchParams.set("tokenIn",  sell.address!);
+        url.searchParams.set("tokenOut", buy.address!);
+        url.searchParams.set("amountIn", amount); // humano, ej. "100"
+        url.searchParams.set("fee", "500");       // si revierte, prueba 3000
+
+        const res  = await fetch(url.toString());
+        const text = await res.text();
+        if (!res.ok) {
+          alert("Uniswap error:\n" + text);
+          return;
+        }
+        const data = JSON.parse(text);
+        console.log("UNISWAP:", data);
+        alert(`Uniswap: ~${data.formattedOut} ${buySym}`);
+        return;
+      }
+
+      // ---- Mainnet → 0x (lo que ya tenías) ----
+      const sellAddr = sell.address || sellSym;
+      const buyAddr  = buy.address || buySym;
       const sellAmount = toUnits(amount, sell.decimals);
 
       const params = new URLSearchParams({
@@ -35,12 +80,12 @@ export default function SwapPage() {
       const res  = await fetch("/api/zeroex/quote?" + params.toString());
       const text = await res.text();
       if (!res.ok) {
-        alert("Error:\n" + text);
+        alert("0x error:\n" + text);
         return;
       }
       const data = JSON.parse(text);
-      console.log("Quote:", data);
-      alert(data.note ? data.note : "Cotización OK (ver consola)");
+      console.log("0x Quote:", data);
+      alert(data.note ? data.note : "Cotización 0x OK (ver consola)");
     } catch (e: any) {
       alert("Error: " + (e?.message || e));
     }
