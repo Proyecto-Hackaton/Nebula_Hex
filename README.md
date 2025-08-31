@@ -1,7 +1,7 @@
-# Link Contrato Sepolia
+# Link Contrato Ethereum (Sepolia)
 https://sepolia.etherscan.io/address/0x0Cb4b5668b7a28090c96e7421e481F1274EBF395
-# Link Contrato Arbitrum
-https://sepolia.arbiscan.io/address/0xd9145CCE52D386f254917e481eB44e9943F39138
+# Link Contrato Arbitrum (Sepolia)
+https://sepolia.arbiscan.io/address/0x4878E7d172850F1E8466932FD1F4880256a9BC1a
 
 # Nebula HEX (Hackatón)
 Última actualización: 2025-08-27
