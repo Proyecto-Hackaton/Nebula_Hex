@@ -1,76 +1,66 @@
-// apps/web/app/api/vaults/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { createPublicClient, http, formatEther } from "viem";
+import { mainnet, sepolia } from "viem/chains";
+import { VAULT_ABI, VAULT_ADDRESS } from "@/abis/vaultAbi";
 
-export const runtime = "nodejs";        // explícito
-export const dynamic = "force-dynamic"; // sin SSG
-export const revalidate = 0;            // sin ISR
+export const dynamic = "force-dynamic"; // evita caché en dev/prod
 
-const BASE = (process.env.VAULTS_API_BASE || "").replace(/\/$/, "");
-const PATH = process.env.VAULTS_API_PATH || "/v1/vaults";
-const API_KEY = process.env.VAULTS_API_KEY || "";
+const NET = (process.env.NEXT_PUBLIC_NETWORK || "sepolia").toLowerCase();
+const RPC =
+  process.env.NEXT_PUBLIC_PUBLIC_CLIENT_RPC ||
+  "https://eth-sepolia.g.alchemy.com/v2/demo";
 
-// helper para construir URL sin “doble slash”
-function joinTarget(req: NextRequest) {
-  const qs = new URL(req.url).search; // preserva ?page=... etc.
-  if (!BASE) return ""; // modo demo si no hay backend
-  return `${BASE}${PATH}${qs}`;
-}
+const chain = NET === "mainnet" ? mainnet : sepolia;
 
-async function passThrough(res: Response) {
-  const text = await res.text();
-  const contentType = res.headers.get("content-type") || "application/json";
-  return new NextResponse(text, {
-    status: res.status,
-    headers: { "content-type": contentType },
-  });
-}
-
-export async function GET(req: NextRequest) {
-  if (!BASE) {
-    // ⚠️ Demo local mientras sale el backend
-    return NextResponse.json({
-      demo: true,
-      vaults: [
-        { id: "usdc-stable", name: "USDC Stable Vault", apy: 0.0725, tvlUSD: 125000, status: "active" },
-        { id: "weth-yield",  name: "WETH Strategy Vault", apy: 0.1231, tvlUSD: 87540,  status: "active" },
-        { id: "eth-delta",   name: "ETH Delta-Neutral",  apy: 0.031,  tvlUSD: 15320,  status: "paused" },
-      ],
-    });
-  }
-
+export async function GET() {
   try {
-    const target = joinTarget(req);
-    const res = await fetch(target, {
-      headers: {
-        accept: "application/json",
-        ...(API_KEY ? { "x-api-key": API_KEY } : {}),
-      },
-      cache: "no-store",
-    });
-    return await passThrough(res);
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 502 });
-  }
-}
+    const client = createPublicClient({ chain, transport: http(RPC) });
+    const address = VAULT_ADDRESS as `0x${string}`;
 
-export async function POST(req: NextRequest) {
-  if (!BASE) return NextResponse.json({ error: "Vaults backend no configurado" }, { status: 500 });
+    // sanity checks para evitar "fetch failed" por throws no atrapados
+    const bytecode = await client.getBytecode({ address });
+    if (!bytecode) {
+      return NextResponse.json(
+        {
+          demo: true,
+          error: `Contrato sin bytecode en ${chain.name}. Revisa VAULT_ADDRESS: ${address}`,
+          vaults: [],
+        },
+        { status: 200 }
+      );
+    }
 
-  try {
-    const target = joinTarget(req);
-    const body = await req.text();
-    const res = await fetch(target, {
-      method: "POST",
-      headers: {
-        "content-type": req.headers.get("content-type") || "application/json",
-        accept: "application/json",
-        ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+    let tvl: bigint = 0n;
+    try {
+      tvl = (await client.readContract({
+        address,
+        abi: VAULT_ABI,
+        functionName: "totalAssets",
+      })) as bigint;
+    } catch {
+      tvl = await client.getBalance({ address });
+    }
+
+    const vaults = [
+      {
+        id: "eth-vault",
+        name: "ETH Vault",
+        address,
+        chainId: chain.id,
+        apr: 0,
+        tvl: Number(formatEther(tvl)),
       },
-      body,
-      cache: "no-store",
-    });
-    return await passThrough(res);
+    ];
+
+    return NextResponse.json({ vaults }, { headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 502 });
+    return NextResponse.json(
+      {
+        demo: true,
+        error: e?.message || String(e),
+        vaults: [],
+      },
+      { status: 200 }
+    );
   }
 }
