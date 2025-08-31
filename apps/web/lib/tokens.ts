@@ -1,3 +1,4 @@
+// apps/web/lib/tokens.ts
 const NET = (process.env.NEXT_PUBLIC_NETWORK || "").toLowerCase();
 
 export const TOKENS_MAINNET = {
@@ -6,18 +7,29 @@ export const TOKENS_MAINNET = {
   DAI:  { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", decimals: 18, label: "DAI"  },
 } as const;
 
+// ⚠️ Mantén UNA sola export de TOKENS_SEPOLIA
 export const TOKENS_SEPOLIA = {
-  // ⚠️ PENDIENTES: pon direcciones reales SOLO si vas a usar Quoter/Router
-  // Por ahora sirven para poblar la UI (demo).
-  USDC: { address: "", decimals: 6,  label: "USDC (Sepolia)" },
-  WETH: { address: "", decimals: 18, label: "WETH (Sepolia)" },
-  DAI:  { address: "", decimals: 18, label: "DAI (Sepolia)" },
+  // Cuando confirmemos direcciones reales, reemplaza "" o usa envs:
+  USDC: { address: process.env.NEXT_PUBLIC_USDC_SEPOLIA ?? "", decimals: 6,  label: "USDC (Sepolia)" },
+  WETH: { address: process.env.NEXT_PUBLIC_WETH_SEPOLIA ?? "", decimals: 18, label: "WETH (Sepolia)" },
+  // Si no usarás DAI en Sepolia, puedes omitirlo
 } as const;
 
-export type MainnetTokenSymbol = keyof typeof TOKENS_MAINNET;
-export type SepoliaTokenSymbol = keyof typeof TOKENS_SEPOLIA;
+export type MainnetTokenSymbol  = keyof typeof TOKENS_MAINNET;
+export type SepoliaTokenSymbol  = keyof typeof TOKENS_SEPOLIA;
 
 export const TOKENS =
   NET === "sepolia" ? TOKENS_SEPOLIA : TOKENS_MAINNET;
 
 export type TokenSymbol = keyof typeof TOKENS;
+
+const isAddr = (a?: string) => typeof a === "string" && /^0x[a-fA-F0-9]{40}$/.test(a);
+
+if (NET === "sepolia") {
+  const usdc = process.env.NEXT_PUBLIC_USDC_SEPOLIA ?? "";
+  const weth = process.env.NEXT_PUBLIC_WETH_SEPOLIA ?? "";
+  if (!isAddr(usdc) || !isAddr(weth)) {
+    alert("Direcciones de tokens en Sepolia no configuradas correctamente.\n" +
+          "Revisa NEXT_PUBLIC_USDC_SEPOLIA y NEXT_PUBLIC_WETH_SEPOLIA en .env.local y reinicia el server.");
+  }
+}
