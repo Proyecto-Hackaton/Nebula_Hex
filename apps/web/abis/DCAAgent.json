@@ -1,0 +1,16 @@
+[
+  {
+    "type": "function",
+    "name": "createPosition",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {"name":"base","type":"address"},
+      {"name":"quote","type":"address"},
+      {"name":"amountPerBuy","type":"uint256"},
+      {"name":"intervalSecs","type":"uint256"},
+      {"name":"maxSlippageBps","type":"uint32"},
+      {"name":"recipient","type":"address"}
+    ],
+    "outputs":[{"name":"id","type":"uint256"}]
+  }
+]
