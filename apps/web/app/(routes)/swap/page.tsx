@@ -1,47 +1,48 @@
 "use client";
 import { useState } from "react";
-import { TOKENS_SEPOLIA, type SepoliaTokenSymbol } from "@/lib/tokens";
+import { TOKENS, type TokenSymbol } from "@/lib/tokens";
 
 function toUnits(amountStr: string, decimals: number) {
-  // convierte "100.5" -> entero según decimales (BigInt)
-  const [intPart, fracPart = ""] = amountStr.trim().split(".");
-  const frac = (fracPart + "0".repeat(decimals)).slice(0, decimals);
-  const raw = (intPart || "0") + frac;
-  // elimina ceros a la izquierda
+  const [i, f = ""] = amountStr.trim().split(".");
+  const frac = (f + "0".repeat(decimals)).slice(0, decimals);
+  const raw  = (i || "0") + frac;
   const clean = raw.replace(/^0+/, "") || "0";
   return BigInt(clean);
 }
 
 export default function SwapPage() {
-  const [sellSym, setSellSym] = useState<SepoliaTokenSymbol>("USDC");
-  const [buySym, setBuySym]   = useState<SepoliaTokenSymbol>("WETH");
-  const [amount, setAmount]   = useState("100"); // en humano
+  const symbols = Object.keys(TOKENS) as TokenSymbol[];
+  const [sellSym, setSellSym] = useState<TokenSymbol>(symbols[0]);
+  const [buySym,  setBuySym]  = useState<TokenSymbol>(symbols[1] || symbols[0]);
+  const [amount,  setAmount]  = useState("100");
 
-  async function quote0x() {
+  async function quote() {
     try {
-      const sell = TOKENS_SEPOLIA[sellSym];
-      const buy  = TOKENS_SEPOLIA[buySym];
+      const sell = TOKENS[sellSym];
+      const buy  = TOKENS[buySym];
 
-      const sellAmount = toUnits(amount, sell.decimals); // BigInt
+      const sellAddr = sell.address || sellSym; // en demo vale con el label
+      const buyAddr  = buy.address || buySym;
+
+      const sellAmount = toUnits(amount, sell.decimals);
 
       const params = new URLSearchParams({
-        buyToken:  buy.address,       // ➜ DIRECCIÓN
-        sellToken: sell.address,      // ➜ DIRECCIÓN
-        sellAmount: sellAmount.toString(), // entero según decimales
+        buyToken:  buyAddr,
+        sellToken: sellAddr,
+        sellAmount: sellAmount.toString(),
       });
 
-      const res = await fetch(`/api/zeroex/quote?` + params.toString());
-      const text = await res.text(); // deja pasar errores crudos de 0x
+      const res  = await fetch("/api/zeroex/quote?" + params.toString());
+      const text = await res.text();
       if (!res.ok) {
-        alert(`0x error:\n${text}`);
+        alert("Error:\n" + text);
         return;
       }
-      // si es OK, será JSON
       const data = JSON.parse(text);
-      console.log("0x quote:", data);
-      alert("Cotización OK (ver consola).");
+      console.log("Quote:", data);
+      alert(data.note ? data.note : "Cotización OK (ver consola)");
     } catch (e: any) {
-      alert(`Error: ${e?.message || e}`);
+      alert("Error: " + (e?.message || e));
     }
   }
 
@@ -53,10 +54,10 @@ export default function SwapPage() {
       <select
         className="w-full mb-3"
         value={sellSym}
-        onChange={(e) => setSellSym(e.target.value as SepoliaTokenSymbol)}
+        onChange={(e) => setSellSym(e.target.value as TokenSymbol)}
       >
-        {Object.entries(TOKENS_SEPOLIA).map(([sym, t]) => (
-          <option key={sym} value={sym}>{t.label}</option>
+        {symbols.map((sym) => (
+          <option key={sym} value={sym}>{TOKENS[sym].label}</option>
         ))}
       </select>
 
@@ -64,10 +65,10 @@ export default function SwapPage() {
       <select
         className="w-full mb-3"
         value={buySym}
-        onChange={(e) => setBuySym(e.target.value as SepoliaTokenSymbol)}
+        onChange={(e) => setBuySym(e.target.value as TokenSymbol)}
       >
-        {Object.entries(TOKENS_SEPOLIA).map(([sym, t]) => (
-          <option key={sym} value={sym}>{t.label}</option>
+        {symbols.map((sym) => (
+          <option key={sym} value={sym}>{TOKENS[sym].label}</option>
         ))}
       </select>
 
@@ -79,8 +80,8 @@ export default function SwapPage() {
         placeholder="100"
       />
 
-      <button onClick={quote0x} className="px-4 py-2 rounded bg-white text-black">
-        Cotizar (0x)
+      <button onClick={quote} className="px-4 py-2 rounded bg-white text-black">
+        Cotizar
       </button>
     </div>
   );

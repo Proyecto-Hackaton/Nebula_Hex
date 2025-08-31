@@ -1,22 +1,44 @@
-'use client'
-import { useEffect, useRef } from 'react'
-import { createChart } from 'lightweight-charts'
+"use client";
+
+import { useEffect, useRef } from "react";
+import { createChart, IChartApi, UTCTimestamp } from "lightweight-charts";
 
 export default function Chart() {
-  const ref = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+
   useEffect(() => {
-    if (!ref.current) return
-    const chart = createChart(ref.current, { height: 300 })
-    const line = chart.addLineSeries()
-    const now = Math.floor(Date.now()/1000)
-    const data = Array.from({length:120}, (_,i)=>({
-      time: (now - (120-i)*60) as any,
-      value: 3000 + Math.sin(i/5)*50 + Math.random()*10
-    }))
-    line.setData(data)
-    const ro = new ResizeObserver(()=>chart.applyOptions({ width: ref.current!.clientWidth }))
-    ro.observe(ref.current)
-    return()=>ro.disconnect()
-  }, [])
-  return <div ref={ref} />
+    const el = containerRef.current!;
+    const chart = createChart(el, {
+      width: el.clientWidth,
+      height: el.clientHeight,
+      layout: { background: { color: "transparent" }, textColor: "#ddd" },
+      grid: { vertLines: { color: "rgba(255,255,255,0.06)" }, horzLines: { color: "rgba(255,255,255,0.06)" } },
+      rightPriceScale: { borderColor: "rgba(255,255,255,0.12)" },
+      timeScale: { borderColor: "rgba(255,255,255,0.12)" },
+    });
+    chartRef.current = chart;
+
+    const series = chart.addLineSeries();
+    series.setData([
+      { time: 1700000000 as UTCTimestamp, value: 2960 },
+      { time: 1700003600 as UTCTimestamp, value: 2985 },
+      { time: 1700007200 as UTCTimestamp, value: 2950 },
+      { time: 1700010800 as UTCTimestamp, value: 3020 },
+      { time: 1700014400 as UTCTimestamp, value: 2965 },
+    ]);
+
+    const ro = new ResizeObserver(() => {
+      chart.applyOptions({ width: el.clientWidth, height: el.clientHeight });
+    });
+    ro.observe(el);
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+    };
+  }, []);
+
+  return <div ref={containerRef} className="w-full h-full" />;
 }
