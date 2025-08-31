@@ -3,15 +3,15 @@ https://sepolia.etherscan.io/address/0x0Cb4b5668b7a28090c96e7421e481F1274EBF395
 # Link Contrato Arbitrum
 https://sepolia.arbiscan.io/address/0xd9145CCE52D386f254917e481eB44e9943F39138
 
-# CEX Bot-Native PMV (Hackatón)
+# Nebula HEX (Hackatón)
 Última actualización: 2025-08-27
 Este es la primera version de un HEX (Hibrid exchange ) 
 solo es una version beta y  espera que el desarrollo de este proyecto continue por muchos años 
 a lo largo de la historia, como una solucion integral para instituciones y personas 
 para poder acceder a defi de una forma mas regulada y controlada.
+Tratando de cuidar y de proteger a los usuarios que 
+sean parte de este protocolo como colaboradores o usarios.
 
-tratando de cuidar y de proteger a los usuarios que 
-sean parte de este protocolo como colaboradores o usarios 
 =======
 # HEX Monorepo (MVP Hackatón)
 
