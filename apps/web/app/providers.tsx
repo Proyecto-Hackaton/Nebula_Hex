@@ -1,8 +1,7 @@
 "use client";
 
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, cookieStorage, createStorage, http } from "wagmi";
 import { sepolia } from "wagmi/chains";
-import { http } from "wagmi"; // en wagmi v2 puedes importar http desde 'wagmi'
 import {
   RainbowKitProvider,
   darkTheme,
@@ -19,7 +18,9 @@ const config = getDefaultConfig({
   projectId,
   chains: [sepolia],
   transports: { [sepolia.id]: http(rpcUrl) },
-  ssr: true,
+  ssr: true, // App Router
+  // 👇 Forzamos storage compatible con SSR (evita indexedDB/localStorage)
+  storage: createStorage({ storage: cookieStorage }),
 });
 
 const queryClient = new QueryClient();
@@ -28,9 +29,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={darkTheme()}>
-          {children}
-        </RainbowKitProvider>
+        <RainbowKitProvider theme={darkTheme()}>{children}</RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
