@@ -117,7 +117,7 @@ export default function LandingNebulaHEX() {
                 Liquidez híbrida, <span style={{ color: COLORS.tealLight }}>seguridad total</span>.
               </h1>
               <p className="mt-4 text-white/80 text-lg">
-                Nebula HEX es una solución financiera para personas y para instituciones: un <span className="font-semibold">Hybrid Exchange</span> que combina
+                Nebula HEX es una solución financiera para personas e instituciones: un <span className="font-semibold">Hybrid Exchange</span> que combina
                 la experiencia de un CEX con la transparencia del DeFi. Compra, intercambia y gestiona activos con costos optimizados y alta disponibilidad.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">

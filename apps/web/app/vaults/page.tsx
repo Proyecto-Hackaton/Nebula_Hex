@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
 import VaultCard, { type Vault } from "@/components/VaultCard";
 import { VAULT_ABI, VAULT_ADDRESS } from "@/abis/vaultAbi";
@@ -19,6 +19,7 @@ export default function VaultsPage() {
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [userBalance, setUserBalance] = useState("0");
+  const depositInputRef = useRef<HTMLInputElement>(null);
 
   // ---- carga lista de vaults desde backend ----
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function VaultsPage() {
     try {
       const c = await getContract();
       const addr =
-        // @ts-ignore: runner only exists en v6 recientes
+        // @ts-ignore: runner solo existe en ethers v6 recientes
         c.runner?.address ?? (await c.signer.getAddress());
       const bal = await c.balanceOf(addr);
       setUserBalance(formatEther(bal));
@@ -105,6 +106,12 @@ export default function VaultsPage() {
     }
   };
 
+  const handleDepositFromCard = (addr: string) => {
+    // futuro: si manejas múltiples vaults, guarda addr en estado
+    depositInputRef.current?.focus();
+    depositInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3">
@@ -125,6 +132,7 @@ export default function VaultsPage() {
           <h3 className="text-white text-xl font-semibold mb-4">Depositar ETH</h3>
           <p className="text-white/70 mb-4">Tu balance en el contrato: {userBalance} ETH</p>
           <input
+            ref={depositInputRef}
             type="number"
             placeholder="Cantidad de ETH"
             value={depositAmount}
@@ -164,8 +172,8 @@ export default function VaultsPage() {
       )}
       {!loading && !data?.error && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-          {(data.vaults ?? []).map((v) => (
-            <VaultCard key={v.id} v={v} />
+          {(data.vaults ?? []).map((v: Vault) => (
+            <VaultCard key={v.id} v={v} onDeposit={handleDepositFromCard} />
           ))}
         </div>
       )}
