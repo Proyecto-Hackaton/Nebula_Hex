@@ -1,12 +1,10 @@
+// apps/web/next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
-    config.resolve.fallback = {
-      ...(config.resolve.fallback || {}),
-      encoding: false,
-      "pino-pretty": false,
-    };
-    return config;
+  reactStrictMode: true,
+  images: {
+    domains: ["localhost", "vercel.app"], // y otros que uses para assets externos
   },
 };
+
 export default nextConfig;

@@ -1,65 +1,52 @@
+// apps/web/app/api/vaults/route.ts
 import { NextResponse } from "next/server";
-import { createPublicClient, http, formatEther } from "viem";
-import { mainnet, sepolia } from "viem/chains";
-import { VAULT_ABI, VAULT_ADDRESS } from "@/abis/vaultAbi";
 
-export const dynamic = "force-dynamic"; // evita caché en dev/prod
+export const dynamic = "force-dynamic"; // evita cache dura en Vercel
 
-const NET = (process.env.NEXT_PUBLIC_NETWORK || "sepolia").toLowerCase();
-const RPC =
-  process.env.NEXT_PUBLIC_PUBLIC_CLIENT_RPC ||
-  "https://eth-sepolia.g.alchemy.com/v2/demo";
-
-const chain = NET === "mainnet" ? mainnet : sepolia;
+// Datos demo para fallback
+const DEMO_VAULTS = [
+  {
+    id: "eth-vault-demo",
+    name: "ETH Vault",
+    symbol: "ETH",
+    chainId: 11155111, // Sepolia
+    apy: 0.075, // 7.5% demo
+    tvlUSD: 125000, // USD bloqueados
+    status: "active",
+    strategy: "Estrategia delta-neutral (demo)",
+    asset: { symbol: "ETH" },
+  },
+];
 
 export async function GET() {
-  try {
-    const client = createPublicClient({ chain, transport: http(RPC) });
-    const address = VAULT_ADDRESS as `0x${string}`;
+  const demo =
+    process.env.NEXT_PUBLIC_VAULTS_DEMO === "true" ||
+    !process.env.NEXT_PUBLIC_VAULTS_API_BASE;
 
-    // sanity checks para evitar "fetch failed" por throws no atrapados
-    const bytecode = await client.getBytecode({ address });
-    if (!bytecode) {
+  // --- Modo demo ---
+  if (demo) {
+    return NextResponse.json({ demo: true, vaults: DEMO_VAULTS });
+  }
+
+  // --- Modo backend real ---
+  const base = process.env.NEXT_PUBLIC_VAULTS_API_BASE!;
+  const path = process.env.NEXT_PUBLIC_VAULTS_API_PATH || "/v1/vaults";
+  const url = new URL(path, base).toString();
+
+  try {
+    const r = await fetch(url, { next: { revalidate: 5 } });
+    if (!r.ok) {
+      const text = await r.text();
       return NextResponse.json(
-        {
-          demo: true,
-          error: `Contrato sin bytecode en ${chain.name}. Revisa VAULT_ADDRESS: ${address}`,
-          vaults: [],
-        },
+        { demo: true, vaults: DEMO_VAULTS, error: `Upstream ${r.status}: ${text}` },
         { status: 200 }
       );
     }
-
-    let tvl: bigint = 0n;
-    try {
-      tvl = (await client.readContract({
-        address,
-        abi: VAULT_ABI,
-        functionName: "totalAssets",
-      })) as bigint;
-    } catch {
-      tvl = await client.getBalance({ address });
-    }
-
-    const vaults = [
-      {
-        id: "eth-vault",
-        name: "ETH Vault",
-        address,
-        chainId: chain.id,
-        apr: 0,
-        tvl: Number(formatEther(tvl)),
-      },
-    ];
-
-    return NextResponse.json({ vaults }, { headers: { "Cache-Control": "no-store" } });
+    const data = await r.json();
+    return NextResponse.json(data);
   } catch (e: any) {
     return NextResponse.json(
-      {
-        demo: true,
-        error: e?.message || String(e),
-        vaults: [],
-      },
+      { demo: true, vaults: DEMO_VAULTS, error: e?.message || String(e) },
       { status: 200 }
     );
   }
