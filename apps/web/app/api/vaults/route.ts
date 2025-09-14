@@ -10,7 +10,7 @@ const DEMO_VAULTS = [
     name: "ETH Vault",
     symbol: "ETH",
     chainId: 11155111, // Sepolia
-    apy: 0.075, // 7.5% demo
+    apy: 0.021, // 2.1% demo
     tvlUSD: 125000, // USD bloqueados
     status: "active",
     strategy: "Estrategia delta-neutral (demo)",
